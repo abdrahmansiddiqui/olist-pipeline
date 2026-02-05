@@ -22,7 +22,7 @@ This project builds a complete local data pipeline using the Brazilian Olist e-c
 2) **Docker Desktop** (to run Postgres + pgAdmin + MinIO containers)
 
 ### Optional (for auto-download)
-- **Kaggle CLI** + `kaggle.json` configured  
+- **Kaggle CLI** + Kaggle API credentials configured  
 If you don’t have this, you can manually download the dataset zip and place CSVs in `data/raw`.
 
 ---
@@ -40,12 +40,23 @@ Make sure Docker Desktop is running.
 
 ### 3) Create Python environment + install dependencies
 
+If you use **uv**:
 ```bash
 uv venv --python 3.11
 # Windows PowerShell:
 .venv\Scripts\Activate.ps1
 uv sync
 ```
+
+If you use **pip**:
+```bash
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+> Note: This repo typically uses `uv` + `pyproject.toml`. If you don’t have `requirements.txt`, use uv.
 
 ### 4) Run the pipeline (this also initializes everything)
 ```bash
@@ -85,11 +96,20 @@ Then rerun:
 python src/run_pipeline.py
 ```
 
-### Option B: Kaggle CLI auto-download (optional)
-1) Go to Kaggle settings → API → “Create New Token”
-2) Put the downloaded `kaggle.json` here:
-   - Windows: `C:\Users\<you>\.kaggle\kaggle.json`
-3) Install Kaggle CLI (in your venv):
+---
+
+## Option B: Kaggle CLI auto-download (optional)
+
+### B1) Standard Kaggle method (recommended): download `kaggle.json`
+1) Go to https://www.kaggle.com/settings
+2) Scroll to **API**
+3) Click **Create New Token**
+4) Kaggle downloads a file called `kaggle.json`
+
+Move it to:
+- Windows: `C:\Users\<you>\.kaggle\kaggle.json`
+
+Then install Kaggle CLI in your venv:
 ```bash
 pip install kaggle
 ```
@@ -100,6 +120,51 @@ python src/run_pipeline.py
 ```
 
 The bootstrap step will auto-download into `data/raw/`.
+
+---
+
+### B2) If Kaggle only gives you the API key/token (no file)
+Sometimes people end up with just the username + key/token string.  
+In that case, create `kaggle.json` yourself using this PowerShell script.
+
+**PowerShell: create `kaggle.json` automatically**
+```powershell
+# Fill these in from Kaggle (Settings -> API)
+$KAGGLE_USERNAME = "PUT_YOUR_KAGGLE_USERNAME_HERE"
+$KAGGLE_KEY      = "PUT_YOUR_KAGGLE_KEY_HERE"
+
+# Create the folder
+$kaggleDir = "$env:USERPROFILE\.kaggle"
+New-Item -ItemType Directory -Force -Path $kaggleDir | Out-Null
+
+# Write kaggle.json
+@"
+{
+  "username": "$KAGGLE_USERNAME",
+  "key": "$KAGGLE_KEY"
+}
+"@ | Out-File -FilePath "$kaggleDir\kaggle.json" -Encoding utf8
+
+# Lock permissions (Kaggle requires it on many systems; Windows is usually OK, but we still restrict access)
+icacls "$kaggleDir\kaggle.json" /inheritance:r /grant:r "$env:USERNAME:(R)" | Out-Null
+
+Write-Host "✓ Created: $kaggleDir\kaggle.json"
+```
+
+Now install Kaggle CLI in your venv:
+```bash
+pip install kaggle
+```
+
+Test it:
+```bash
+kaggle datasets list | Select-Object -First 5
+```
+
+Then rerun:
+```bash
+python src/run_pipeline.py
+```
 
 ---
 
