@@ -226,12 +226,12 @@ POSTGRES_PASSWORD=olistpw
 def ensure_schema_file():
     schema_path = Path("sql/schema.sql")
     if not schema_path.exists():
-        schema_path.write_text(SCHEMA_SQL, encoding="utf-8", newline="\\n")
+        schema_path.write_text(SCHEMA_SQL, encoding="utf-8", newline="\n")
         print("✓ Created sql/schema.sql")
     else:
         # Also remove BOM if present (prevents the comment-line syntax error)
         txt = schema_path.read_text(encoding="utf-8-sig")
-        schema_path.write_text(txt, encoding="utf-8", newline="\\n")
+        schema_path.write_text(txt, encoding="utf-8", newline="\n")
         print("✓ sql/schema.sql exists (normalized encoding to UTF-8 no BOM)")
 
 
@@ -339,24 +339,24 @@ def run_full_pipeline():
     # [0] Wait for services etc (keep your existing logic if you have it)
     # If you already have wait_for_services(), call it here.
 
-    print("\\n[1/4] Uploading raw CSVs from data/raw -> MinIO raw bucket...")
+    print("\n[1/4] Uploading raw CSVs from data/raw -> MinIO raw bucket...")
     upload_raw_csvs()
 
-    print("\\n[2/4] Transform: MinIO raw -> cleaned -> MinIO processed + data/processed ...")
+    print("\n[2/4] Transform: MinIO raw -> cleaned -> MinIO processed + data/processed ...")
     raw_bucket = os.getenv("MINIO_BUCKET_RAW", "olist-raw")
     processed_bucket = os.getenv("MINIO_BUCKET_PROCESSED", "olist-processed")
     process_from_minio(raw_bucket, processed_bucket, "data/processed")
 
-    print("\\n[3/4] Creating Postgres schema...")
+    print("\n[3/4] Creating Postgres schema...")
     engine = get_db_engine()
     ok = create_schema(engine)
     if not ok:
         raise RuntimeError("Schema creation failed. Ensure sql/schema.sql exists and is valid.")
 
-    print("\\n[4/4] Load: MinIO processed -> Postgres ...")
+    print("\n[4/4] Load: MinIO processed -> Postgres ...")
     load_data_to_postgres("data/processed", engine)
 
-    print("\\n" + "=" * 80)
+    print("\n" + "=" * 80)
     print("PIPELINE DONE ✅")
     print("=" * 80)
     verify_data(engine)
